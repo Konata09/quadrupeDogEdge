@@ -82,17 +82,17 @@ def handle_mqtt_msg(client, message):
         logging.info(f'\tgot gesture: {gesture_map[gesture]}')
         spend_time = int(time.time()) - sent_time
         logging.info(f'\tspend time: {spend_time}')
-        if gesture == 0:
-
+        if gesture == 0:  # 未识别的动作, 不进行操作
             return
         ctrl_data = gesture_to_ctrl_data(robot_id, gesture)
         publish_mqtt(client, pub_topic, json.dumps(ctrl_data))
-        if robot_timer.get(robot_id) is not None:
+        if robot_timer.get(robot_id) is not None:  # 已经有此机器人的定时器, 重置时间
             robot_timer[robot_id] = reset_delay
             return
-        else:
+        else:  # 没有此机器人的定时器, 设置定时, 并启动看门狗
             robot_timer[robot_id] = reset_delay
-            threading.Thread(target=reset_robot, args=(client, robot_id))
+            timer_t = threading.Thread(target=reset_robot, args=(client, robot_id), name=f"Thread_timer_{robot_id}")
+            timer_t.start()
 
 
 t = 1
@@ -156,11 +156,11 @@ gesture_switch_map = {
 
 
 def reset_robot(client, robot_id):
-    global timer
     while 1:
         time.sleep(1)
-        timer = timer - 1
-        if timer <= 0:
+        robot_timer[robot_id] = robot_timer.get(robot_id) - 1
+        if robot_timer[robot_id] <= 0:
+            robot_timer[robot_id] = reset_delay
             logging.info(f'RESET: robot_id: {robot_id}')
             resp = copy.deepcopy(response_json)
             resp['timestamp'] = int(time.time())
