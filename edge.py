@@ -5,6 +5,7 @@ import threading
 import time
 import paho.mqtt.client as mqtt
 import logging
+import socket
 
 response_json = {
     "dog_id": 0,
@@ -28,10 +29,12 @@ gesture_map = {
     1: "Forward",  # 前进
     2: "Back",  # 后退
     3: "Stand",  # 站立
-    4: "Down"  # 趴下
+    4: "Down",  # 趴下
+    5: "Left",  # 左移
+    6: "Right"  # 右移
 }
 
-DOCKER_HOSTNAME = 'DOCKER_HOSTNAME'
+DOCKER_HOSTNAME = socket.gethostname()
 sub_topic = "robot_upload"
 pub_topic = "control"
 broker = "172.31.120.1"
@@ -95,15 +98,9 @@ def handle_mqtt_msg(client, message):
             timer_t.start()
 
 
-t = 1
 def call_recognition(img_byte):
     time.sleep(1)
-    global t
-    if t == 1:
-        t = 0
-        return 1
-    else:
-        return 0
+    return 1
 
 
 def publish_mqtt(client, topic, payload):
@@ -147,11 +144,27 @@ def Down():
     return resp_data
 
 
+def Left():
+    resp_data = copy.deepcopy(control_data)
+    resp_data['step_height'] = 0.1
+    resp_data['v_des'] = [0.0, 0.2, 0.0]
+    return resp_data
+
+
+def Right():
+    resp_data = copy.deepcopy(control_data)
+    resp_data['step_height'] = 0.1
+    resp_data['v_des'] = [0.0, -0.2, 0.0]
+    return resp_data
+
+
 gesture_switch_map = {
     1: Forward,  # 前进
     2: Back,  # 后退
     3: Stand,  # 站立
-    4: Down  # 趴下
+    4: Down,  # 趴下
+    5: Left,  # 左移
+    6: Right  # 右移
 }
 
 
